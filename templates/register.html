@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация — AMAGON</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #eef2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 380px;
+        }
+        h2 { margin-bottom: 20px; font-size: 22px; text-align: center; }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px 14px;
+            margin-bottom: 15px;
+            border: 1px solid #dbdbdb;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus { border-color: #0088cc; }
+        button {
+            width: 100%;
+            padding: 11px;
+            background: #0088cc;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        button:hover { background: #0077b3; }
+        .hint { font-size: 11px; color: #666; margin-top: -10px; margin-bottom: 15px; }
+        
+        .terms-container {
+            font-size: 12px;
+            color: #444;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.4;
+        }
+        .terms-container input[type="checkbox"] {
+            margin-top: 2px;
+            cursor: pointer;
+        }
+        .terms-container a {
+            color: #0088cc;
+            text-decoration: none;
+        }
+        .terms-container a:hover {
+            text-decoration: underline;
+        }
+
+        .link { text-align: center; margin-top: 15px; font-size: 14px; }
+        .link a { color: #0088cc; text-decoration: none; }
+        body {
+            min-height: 100vh;
+            height: auto;
+            padding: 24px 16px;
+            background: radial-gradient(circle at 15% 15%, #395da7 0, transparent 35%), linear-gradient(135deg, #0b1222, #172c4d 55%, #111827);
+        }
+        .card {
+            max-width: 420px;
+            padding: 38px;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 22px;
+            background: rgba(255,255,255,.97);
+            box-shadow: 0 28px 80px rgba(0,0,0,.32);
+        }
+        h2 { font-size: 25px; letter-spacing: -.6px; }
+        input[type="text"], input[type="password"] { padding: 13px 15px; border-radius: 11px; }
+        input:focus { border-color: #4f7cff; box-shadow: 0 0 0 3px rgba(79,124,255,.12); }
+        button { padding: 13px; border-radius: 11px; background: #426ff4; font-weight: 650; }
+        button:hover { background: #315fe0; }
+        .flash-error { color: #a52828; background: #fff0f0; border: 1px solid #ffd6d6; padding: 11px 13px; border-radius: 10px; margin: 0 0 16px; font-size: 13px; line-height: 1.4; }
+        @media (max-width: 480px) { .card { padding: 28px 22px; } }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Создать аккаунт</h2>
+        {% if error %}<div class="flash-error">{{ error }}</div>{% endif %}
+        <form method="POST">
+            <!-- Поле для Имени -->
+            <input type="text" name="name" placeholder="Ваше имя" maxlength="60" required autocomplete="name">
+            
+            <!-- Поле для Юзернейма (только латиница) -->
+            <input type="text" name="username" placeholder="Имя пользователя" pattern="[A-Za-z0-9_]{3,24}" minlength="3" maxlength="24" title="3–24 символа: латинские буквы, цифры и _" required autocomplete="username">
+            <div class="hint">Только латиница, цифры и знак `_`</div>
+            
+            <input type="password" name="password" placeholder="Пароль (от 8 символов)" minlength="8" maxlength="128" required autocomplete="new-password">
+            
+            <!-- Чек-поинт с раздельными ссылками -->
+            <div class="terms-container">
+                <input type="checkbox" id="terms" name="terms_agree" required>
+                <label for="terms">
+                    Я согласен(-на) с <a href="{{ url_for('privacy_policy') }}" target="_blank">Политикой конфиденциальности</a> и <a href="{{ url_for('terms') }}" target="_blank">Условиями использования</a>. Понимаю, что при сносе аккаунта валюта <b>GON</b> и имущество не возмещаются.
+                </label>
+            </div>
+            
+            <button type="submit">Зарегистрироваться</button>
+        </form>
+        <div class="link">
+            Уже есть аккаунт? <a href="{{ url_for('login') }}">Войти</a>
+        </div>
+    </div>
+</body>
+</html>
