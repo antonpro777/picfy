@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мессенджер</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #dbdbdb;
+            --chat-bg: #eef2f5;
+            --header-bg: #ffffff;
+            --msg-in: #ffffff;
+            --msg-out: #eeffde;
+            --hover-bg: #f5f5f5;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #18191a;
+            --text-color: #e4e6eb;
+            --sidebar-bg: #242526;
+            --sidebar-border: #393a3b;
+            --chat-bg: #18191a;
+            --header-bg: #242526;
+            --msg-in: #3a3b3c;
+            --msg-out: #005c4b;
+            --hover-bg: #303031;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body, html {
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .messenger-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 320px;
+            border-right: 1px solid var(--sidebar-border);
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background: var(--sidebar-bg);
+            border-bottom: 1px solid var(--sidebar-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info-block {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .balance-badge {
+            font-size: 12px;
+            color: #ff9800;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .sidebar-actions {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--sidebar-border);
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-link {
+            flex: 1;
+            text-align: center;
+            padding: 8px 4px;
+            background: var(--chat-bg);
+            border: 1px solid var(--sidebar-border);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .action-link:hover {
+            background: var(--hover-bg);
+        }
+
+        .user-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .user-item {
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        .user-item:hover {
+            background: var(--hover-bg);
+        }
+
+        .user-avatar-small {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #0088cc;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--chat-bg);
+            min-width: 0;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 12px 15px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--sidebar-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .messages-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .message.incoming {
+            background: var(--msg-in);
+            align-self: flex-start;
+            border: 1px solid var(--sidebar-border);
+        }
+
+        .message.outgoing {
+            background: var(--msg-out);
+            align-self: flex-end;
+        }
+
+        .chat-input-box {
+            padding: 10px;
+            background: var(--header-bg);
+            border-top: 1px solid var(--sidebar-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .chat-input-box input[type="text"] {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 14px;
+            border: 1px solid var(--sidebar-border);
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .chat-input-box button[type="submit"] {
+            padding: 10px 16px;
+            background: #0088cc;
+            color: #ffffff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .chat-input-box button[type="submit"]:hover {
+            background: #0077b3;
+        }
+
+        .emoji-btn, .theme-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .emoji-picker {
+            position: absolute;
+            bottom: 60px;
+            left: 10px;
+            background: var(--header-bg);
+            border: 1px solid var(--sidebar-border);
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .emoji-picker span {
+            font-size: 20px;
+            cursor: pointer;
+            text-align: center;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .emoji-picker span:hover {
+            background: var(--hover-bg);
+        }
+
+        .back-btn {
+            display: none;
+        }
+
+        .no-chat-selected {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: gray;
+            font-size: 16px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: var(--sidebar-bg);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid var(--sidebar-border);
+        }
+        canvas {
+            background: #111;
+            display: block;
+            margin: 10px auto;
+            border-radius: 6px;
+        }
+        .close-game {
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .messenger-container {
+                position: relative;
+            }
+            .sidebar {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0; left: 0;
+                z-index: {% if active_recipient %}1{% else %}2{% endif %};
+                display: {% if active_recipient %}none{% else %}flex{% endif %};
+            }
+            .chat-area {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0; left: 0;
+                z-index: {% if active_recipient %}2{% else %}1{% endif %};
+                display: {% if active_recipient %}flex{% else %}none{% endif %};
+            }
+            .back-btn {
+                display: inline-flex !important;
+                align-items: center;
+                gap: 5px;
+                text-decoration: none;
+                color: #0088cc;
+                font-weight: 500;
+                font-size: 15px;
+                margin-right: 12px;
+            }
+        }
+
+        /* Refined Messenger interface */
+        :root {
+            --accent: #4f7cff;
+            --accent-strong: #315fe0;
+            --soft-shadow: 0 14px 38px rgba(20, 35, 70, .08);
+        }
+        body { background: var(--bg-color); }
+        .messenger-container { background: var(--chat-bg); }
+        .sidebar { box-shadow: 8px 0 28px rgba(20, 35, 70, .035); z-index: 2; }
+        .sidebar-header, .chat-header { padding: 16px 20px; }
+        .sidebar-header h2 { letter-spacing: -.4px; }
+        .user-item { margin: 4px 8px; border: 0; border-radius: 12px; transition: background .18s ease, transform .18s ease; }
+        .user-item:hover { transform: translateX(2px); }
+        .user-item.active { background: rgba(79,124,255,.12); }
+        .chat-header { box-shadow: 0 3px 14px rgba(20,35,70,.035); }
+        .messages-box { padding: 22px clamp(14px, 3vw, 34px); gap: 12px; }
+        .message { max-width: min(72%, 680px); border-radius: 17px; padding: 11px 15px; box-shadow: 0 2px 8px rgba(20,35,70,.035); }
+        .message.incoming { border-top-left-radius: 5px; }
+        .message.outgoing { border-top-right-radius: 5px; }
+        .chat-input-box { align-items: center; gap: 9px; padding: 14px 18px; border-top: 1px solid var(--sidebar-border); }
+        .chat-input-box input[type="text"] { min-width: 0; padding: 13px 16px; border: 1px solid var(--sidebar-border); border-radius: 14px; background: var(--chat-bg); color: var(--text-color); transition: border-color .18s, box-shadow .18s; }
+        .chat-input-box input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,124,255,.12); }
+        .chat-input-box button[type="submit"] { border-radius: 13px; background: var(--accent); padding: 12px 19px; font-weight: 650; transition: transform .15s, background .15s; }
+        .chat-input-box button[type="submit"]:hover { background: var(--accent-strong); transform: translateY(-1px); }
+        .voice-record-btn { flex: 0 0 42px; width: 42px; height: 42px; padding: 0 !important; border-radius: 13px !important; background: var(--chat-bg) !important; color: var(--text-color) !important; border: 1px solid var(--sidebar-border) !important; font-size: 18px; }
+        .voice-record-btn:hover { background: rgba(79,124,255,.12) !important; }
+        .voice-record-btn:disabled { opacity: .55; cursor: wait; }
+        .voice-status { font-size: 11px; color: var(--accent); max-width: 145px; }
+        .voice-player { display: block; width: min(280px, 100%); max-width: 100%; margin: 5px 0; }
+        .no-chat-selected { display: grid; place-items: center; min-height: 100%; color: #8490a5; font-size: 15px; }
+        @media (max-width: 760px) {
+            .sidebar { width: 86px; }
+            .sidebar .user-item { justify-content: center; padding: 12px 6px; }
+            .sidebar .user-item > div:not(.user-avatar-small), .sidebar .user-info-block, .sidebar .sidebar-actions .action-link span { display: none; }
+            .chat-input-box { padding: 10px; gap: 6px; }
+            .chat-input-box button[type="submit"] { padding: 11px 12px; }
+            .voice-status { display: none; }
+            .message { max-width: 88%; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <div class="messenger-container">
+        <!-- Сайдбар -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    {% if current_user.avatar_url %}
+                        <img src="{{ current_user.avatar_url }}" class="user-avatar-small">
+                    {% else %}
+                        <div class="user-avatar-small">👤</div>
+                    {% endif %}
+                    <div class="user-info-block">
+                        <strong>{{ current_user.name }}</strong>
+                        <div style="font-size: 12px; color: gray;">@{{ current_user.username }}</div>
+                        <div class="balance-badge">🪙 <span id="userBalance">{{ current_user.balance }}</span> GUN</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="theme-btn" onclick="toggleTheme()" title="Сменить тему">💡</button>
+                    <a href="{{ url_for('logout') }}" style="color: #ff4d4d; text-decoration: none; font-size: 13px;">Выйти</a>
+                </div>
+            </div>
+
+            <div class="sidebar-actions">
+                <a href="{{ url_for('search_users') }}" class="action-link">🔍 Поиск</a>
+                <a href="{{ url_for('settings') }}" class="action-link">⚙️ Настройки</a>
+                <a href="{{ url_for('shop') }}" class="action-link">🛒 Магазин</a>
+                <button onclick="openSnakeGame()" class="action-link" style="border:none; font: inherit; background: var(--chat-bg);">🎮 Змейка</button>
+            </div>      
+
+            <div class="user-list" id="userList">
+                {% for user in users %}
+                    <a href="{{ url_for('index', to=user.id) }}" class="user-item">
+                        {% if user.avatar_url %}
+                            <img src="{{ user.avatar_url }}" class="user-avatar-small">
+                        {% else %}
+                            <div class="user-avatar-small">👤</div>
+                        {% endif %}
+                        <div>
+                            <div style="font-weight: 500;">{{ user.name }}</div>
+                            <div style="font-size: 12px; color: {% if user.status == 'В сети' %}green{% else %}gray{% endif %};">@{{ user.username }} • {{ user.status }}</div>
+                        </div>
+                    </a>
+                {% else %}
+                    <div style="padding: 20px; text-align: center; color: gray; font-size: 14px;">
+                        У вас пока нет активных чатов.<br>Нажмите «🔍 Поиск», чтобы найти пользователей!
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Область чата -->
+        <div class="chat-area">
+            {% if active_recipient %}
+                <div class="chat-header">
+                    <div style="display: flex; align-items: center;">
+                        <a href="{{ url_for('index') }}" class="back-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                            Назад
+                        </a>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            {% if active_recipient.avatar_url %}
+                                <img src="{{ active_recipient.avatar_url }}" class="user-avatar-small">
+                            {% else %}
+                                <div class="user-avatar-small">👤</div>
+                            {% endif %}
+                            <div>
+                                <a href="{{ url_for('view_profile', user_id=active_recipient.id) }}" style="text-decoration: none; color: var(--text-color); display: flex; align-items: center; gap: 5px;">
+                                    <h3 style="font-size: 15px; margin: 0; font-weight: 600;">{{ active_recipient.name }}</h3>
+                                    {% if active_recipient.is_admin %}
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#0088cc" title="Администратор">
+                                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                        </svg>
+                                    {% endif %}
+                                </a>
+                                <div style="font-size: 11px; color: gray;">@{{ active_recipient.username }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if current_user.is_admin %}
+                        <button onclick="adminDeleteUser({{ active_recipient.id }})" style="background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                            🗑️ Удалить аккаунт
+                        </button>
+                    {% endif %}
+                </div>
+
+                <div class="messages-box" id="messagesBox">
+                    {% for msg in messages %}
+                        <div class="message {% if msg.sender_id == current_user.id %}outgoing{% else %}incoming{% endif %}" id="msg-{{ msg.id }}">
+                            {% if msg.is_deleted %}
+                                <span style="color: gray; font-style: italic;">Сообщение удалено</span>
+                            {% else %}
+                                {% if msg.file_url %}
+                                    {% if msg.file_type == 'image' %}
+                                        <img src="{{ msg.file_url }}" alt="Изображение" style="max-width: 100%; border-radius: 12px; margin-bottom: 6px; display: block;">
+                                    {% elif msg.file_type == 'audio' %}
+                                        <audio controls preload="none" src="{{ msg.file_url }}" class="voice-player">Ваш браузер не поддерживает аудио.</audio>
+                                    {% else %}
+                                        <a href="{{ msg.file_url }}" target="_blank" rel="noopener noreferrer" style="display: block; color: var(--text-color); text-decoration: underline; margin-bottom: 5px;">📄 Скачать файл</a>
+                                    {% endif %}
+                                {% endif %}
+                                {% if msg.content %}
+                                    <div>{{ msg.content }}</div>
+                                {% endif %}
+                                <div style="font-size: 10px; text-align: right; margin-top: 2px; color: {% if msg.is_read %}#0088cc{% else %}gray{% endif %};">
+                                    {% if msg.sender_id == current_user.id %}
+                                        <span onclick="deleteMessage({{ msg.id }})" style="cursor: pointer; margin-right: 5px;" title="Удалить">🗑️</span>
+                                        <span>{% if msg.is_read %}✓✓{% else %}✓{% endif %}</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if is_blocked %}
+                    <div style="padding: 15px; background: var(--header-bg); text-align: center; color: #ff4d4d; border-top: 1px solid var(--sidebar-border); font-size: 14px;">
+                        Вы заблокировали этого пользователя.
+                    </div>
+                {% else %}
+                    <form class="chat-input-box" id="messageForm" onsubmit="sendMessage(event)">
+                        <input type="hidden" id="recipientId" value="{{ active_recipient.id }}">
+                        
+                        <button type="button" class="emoji-btn" onclick="toggleEmojiPicker()">😀</button>
+                        
+                        <label for="fileInput" style="cursor: pointer; font-size: 20px; padding: 0 4px;" title="Прикрепить файл">📎</label>
+                        <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelect(this)">
+
+                        <div class="emoji-picker" id="emojiPicker">
+                            <span onclick="addEmoji('😊')">😊</span>
+                            <span onclick="addEmoji('😂')">😂</span>
+                            <span onclick="addEmoji('❤️')">❤️</span>
+                            <span onclick="addEmoji('👍')">👍</span>
+                            <span onclick="addEmoji('🔥')">🔥</span>
+                            <span onclick="addEmoji('✨')">✨</span>
+                            <span onclick="addEmoji('🎉')">🎉</span>
+                            <span onclick="addEmoji('😎')">😎</span>
+                            <span onclick="addEmoji('🤔')">🤔</span>
+                            <span onclick="addEmoji('😢')">😢</span>
+                        </div>
+
+                        <input type="text" id="messageInput" placeholder="Написать сообщение..." autocomplete="off" maxlength="4000">
+                        <button type="button" class="voice-record-btn" id="voiceRecordBtn" onclick="toggleVoiceRecording()" title="Записать голосовое сообщение" aria-label="Записать голосовое сообщение">🎙️</button>
+                        <span id="voiceStatus" class="voice-status" aria-live="polite"></span>
+                        <button type="submit">Отправить</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <div class="no-chat-selected">
+                    Выберите чат слева или найдите пользователя через поиск
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Модальное окно игры "Змейка" -->
+    <div class="modal" id="snakeModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 5px;">Игра «Змейка»</h3>
+            <p style="font-size: 13px; color: gray; margin-bottom: 10px;">Каждые 10 очков = 1 GUN 🪙</p>
+            <div style="font-size: 15px; font-weight: bold; margin-bottom: 5px;">Очки: <span id="snakeScore">0</span></div>
+            <canvas id="snakeCanvas" width="300" height="300"></canvas>
+            <br>
+            <button class="close-game" onclick="closeSnakeGame()">Закрыть игру</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+
+            const box = document.getElementById('messagesBox');
+            if (box) {
+                box.scrollTop = box.scrollHeight;
+            }
+        });
+
+        function toggleTheme() {
+            const body = document.body;
+            let currentTheme = body.getAttribute('data-theme');
+            let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function checkUnreadNotifications() {
+            fetch('/unread_count')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.count > 0) {
+                        document.title = `(${data.count}) Мессенджер`;
+                    } else {
+                        document.title = "Мессенджер";
+                    }
+                });
+        }
+        setInterval(checkUnreadNotifications, 5000);
+
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            picker.style.display = picker.style.display === 'grid' ? 'none' : 'grid';
+        }
+
+        function addEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            toggleEmojiPicker();
+            input.focus();
+        }
+
+        function deleteMessage(msgId) {
+            if (!confirm("Удалить это сообщение?")) return;
+            
+            fetch('/delete_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ msg_id: msgId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const msgEl = document.getElementById(`msg-${msgId}`);
+                    if (msgEl) {
+                        msgEl.innerHTML = '<span style="color: gray; font-style: italic;">Сообщение удалено</span>';
+                    }
+                }
+            });
+        }
+
+        let lastMsgId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const messagesBox = document.getElementById('messagesBox');
+            if (messagesBox) {
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+                const messageElements = messagesBox.querySelectorAll('.message');
+                if (messageElements.length > 0) {
+                    const lastEl = messageElements[messageElements.length - 1];
+                    const match = lastEl.id.match(/msg-(\d+)/);
+                    if (match) {
+                        lastMsgId = parseInt(match[1]);
+                    }
+                }
+            }
+        });
+
+        setInterval(() => {
+            const recipientInput = document.getElementById('recipientId');
+            if (!recipientInput) return;
+
+            const recipientId = recipientInput.value;
+
+            fetch(`/get_new_messages?recipient_id=${recipientId}&last_id=${lastMsgId || 0}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.messages && data.messages.length > 0) {
+                        const messagesBox = document.getElementById('messagesBox');
+                        
+                        data.messages.forEach(msg => {
+                            if (document.getElementById(`msg-${msg.id}`)) return;
+
+                            const msgDiv = document.createElement('div');
+                            msgDiv.className = `message ${msg.sender_id == recipientId ? 'incoming' : 'outgoing'}`;
+                            msgDiv.id = `msg-${msg.id}`;
+
+                            if (msg.is_deleted) {
+                                msgDiv.innerHTML = '<span style="color: gray; font-style: italic;">Сообщение удалено</span>';
+                            } else {
+                                let inner = '';
+                                if (msg.file_url) {
+                                    const safeUrl = escapeHtml(msg.file_url);
+                                    if (msg.file_type === 'image') {
+                                        inner += `<img src="${safeUrl}" alt="Изображение" style="max-width: 100%; border-radius: 12px; margin-bottom: 6px; display: block;">`;
+                                    } else if (msg.file_type === 'audio') {
+                                        inner += `<audio controls preload="none" class="voice-player" src="${safeUrl}"></audio>`;
+                                    } else {
+                                        inner += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="display: block; color: var(--text-color); text-decoration: underline; margin-bottom: 5px;">📄 Скачать файл</a>`;
+                                    }
+                                }
+                                if (msg.content) {
+                                    inner += `<div>${escapeHtml(msg.content)}</div>`;
+                                }
+                                
+                                if (msg.sender_id != recipientId) {
+                                    inner += `<div style="font-size: 10px; text-align: right; margin-top: 2px; color: gray;">
+                                        <span onclick="deleteMessage(${msg.id})" style="cursor: pointer; margin-right: 5px;" title="Удалить">🗑️</span>
+                                        <span>✓</span>
+                                    </div>`;
+                                }
+                                msgDiv.innerHTML = inner;
+                            }
+
+                            messagesBox.appendChild(msgDiv);
+                            lastMsgId = msg.id;
+                        });
+
+                        messagesBox.scrollTop = messagesBox.scrollHeight;
+                    }
+                })
+                .catch(err => console.log('Ошибка получения сообщений:', err));
+        }, 3000);
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
+        let voiceRecorder = null;
+        let voiceStream = null;
+        let voiceChunks = [];
+
+        async function toggleVoiceRecording() {
+            const button = document.getElementById('voiceRecordBtn');
+            const status = document.getElementById('voiceStatus');
+
+            if (voiceRecorder && voiceRecorder.state === 'recording') {
+                voiceRecorder.stop();
+                button.disabled = true;
+                button.textContent = '…';
+                status.textContent = 'Сохраняю запись…';
+                return;
+            }
+
+            if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+                alert('Запись голосовых сообщений не поддерживается этим браузером.');
+                return;
+            }
+
+            try {
+                voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mimeCandidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+                const mimeType = mimeCandidates.find(type => MediaRecorder.isTypeSupported(type));
+                voiceRecorder = new MediaRecorder(voiceStream, mimeType ? { mimeType } : {});
+                voiceChunks = [];
+
+                voiceRecorder.ondataavailable = event => {
+                    if (event.data && event.data.size) voiceChunks.push(event.data);
+                };
+
+                voiceRecorder.onstop = async () => {
+                    voiceStream?.getTracks().forEach(track => track.stop());
+                    const type = voiceRecorder.mimeType || 'audio/webm';
+                    const extension = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+                    const blob = new Blob(voiceChunks, { type });
+                    const formData = new FormData();
+                    formData.append('recipient_id', document.getElementById('recipientId').value);
+                    formData.append('content', '');
+                    formData.append('file', blob, `voice-${Date.now()}.${extension}`);
+
+                    try {
+                        const response = await fetch('/send', { method: 'POST', body: formData });
+                        if (!response.ok) {
+                            const message = await response.text();
+                            throw new Error(message || 'Не удалось отправить голосовое сообщение.');
+                        }
+                        status.textContent = 'Голосовое отправлено';
+                    } catch (error) {
+                        status.textContent = 'Не удалось отправить запись';
+                        alert(error.message || 'Ошибка отправки голосового сообщения.');
+                    } finally {
+                        button.disabled = false;
+                        button.textContent = '🎙️';
+                        voiceRecorder = null;
+                        voiceChunks = [];
+                        setTimeout(() => { status.textContent = ''; }, 3500);
+                    }
+                };
+
+                voiceRecorder.start();
+                button.textContent = '⏹️';
+                status.textContent = 'Идёт запись… нажмите ⏹️ для отправки';
+            } catch (error) {
+                status.textContent = '';
+                alert('Не удалось получить доступ к микрофону. Проверьте разрешение браузера.');
+                voiceStream?.getTracks().forEach(track => track.stop());
+                voiceStream = null;
+            }
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                document.getElementById('messageInput').placeholder = `Файл выбран: ${input.files[0].name}`;
+            }
+        }
+
+        function sendMessage(event) {
+            event.preventDefault();
+            const recipientId = document.getElementById('recipientId').value;
+            const input = document.getElementById('messageInput');
+            const fileInput = document.getElementById('fileInput');
+            const content = input.value.trim();
+            const file = fileInput.files[0];
+
+            if (!content && !file) return;
+
+            let formData = new FormData();
+            formData.append('recipient_id', recipientId);
+            formData.append('content', content);
+            if (file) {
+                formData.append('file', file);
+            }
+
+            fetch('/send', {
+                method: 'POST',
+                body: formData
+            }).then(async response => {
+                if (!response.ok) {
+                    const message = await response.text();
+                    throw new Error(message || 'Не удалось отправить сообщение.');
+                }
+                input.value = '';
+                fileInput.value = '';
+                input.placeholder = "Написать сообщение...";
+            }).catch(error => {
+                alert(error.message || 'Ошибка отправки сообщения.');
+            });
+        }
+
+        function adminDeleteUser(userId) {
+            if (!confirm("Вы уверены, что хотите удалить этого пользователя?")) return;
+            
+            fetch('/admin/delete_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '/';
+                } else {
+                    alert(data.error || "Ошибка удаления");
+                }
+            });
+        }
+
+        let snakeInterval = null;
+        const canvas = document.getElementById('snakeCanvas');
+        const ctx = canvas.getContext('2d');
+        let grid = 15;
+        let count = 0;
+        let score = 0;
+
+        let snake = { x: 150, y: 150, dx: grid, dy: 0, cells: [], maxCells: 4 };
+        let apple = { x: 90, y: 90 };
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        function openSnakeGame() {
+            document.getElementById('snakeModal').style.display = 'flex';
+            resetGame();
+            snakeInterval = requestAnimationFrame(gameLoop);
+        }
+
+        function closeSnakeGame() {
+            document.getElementById('snakeModal').style.display = 'none';
+            cancelAnimationFrame(snakeInterval);
+            if (score > 0) {
+                saveScore(score);
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            document.getElementById('snakeScore').textContent = score;
+            snake.x = 150;
+            snake.y = 150;
+            snake.cells = [];
+            snake.maxCells = 4;
+            snake.dx = grid;
+            snake.dy = 0;
+            apple.x = getRandomInt(0, 20) * grid;
+            apple.y = getRandomInt(0, 20) * grid;
+        }
+
+        function gameLoop() {
+            snakeInterval = requestAnimationFrame(gameLoop);
+
+            if (++count < 12) { return; }
+            count = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            snake.x += snake.dx;
+            snake.y += snake.dy;
+
+            if (snake.x < 0) { snake.x = canvas.width - grid; }
+            else if (snake.x >= canvas.width) { snake.x = 0; }
+            if (snake.y < 0) { snake.y = canvas.height - grid; }
+            else if (snake.y >= canvas.height) { snake.y = 0; }
+
+            snake.cells.unshift({x: snake.x, y: snake.y});
+
+            if (snake.cells.length > snake.maxCells) {
+                snake.cells.pop();
+            }
+
+            ctx.fillStyle = 'red';
+            ctx.fillRect(apple.x, apple.y, grid-1, grid-1);
+
+            ctx.fillStyle = '#0088cc';
+            snake.cells.forEach(function(cell, index) {
+                ctx.fillRect(cell.x, cell.y, grid-1, grid-1);
+
+                if (cell.x === apple.x && cell.y === apple.y) {
+                    snake.maxCells++;
+                    score += 5;
+                    document.getElementById('snakeScore').textContent = score;
+                    apple.x = getRandomInt(0, 20) * grid;
+                    apple.y = getRandomInt(0, 20) * grid;
+                }
+
+                for (let i = index + 1; i < snake.cells.length; i++) {
+                    if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+                        saveScore(score);
+                        resetGame();
+                    }
+                }
+            });
+        }
+
+        function saveScore(finalScore) {
+            if (finalScore <= 0) return;
+            fetch('/earn_gon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score: finalScore })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.earned > 0) {
+                    document.getElementById('userBalance').textContent = data.new_balance;
+                    alert(`Игра окончена! Вы заработали ${data.earned} GUN (Ваш счет: ${finalScore})`);
+                    score = 0; 
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('snakeModal').style.display !== 'flex') return;
+
+            if (e.key === 'ArrowLeft' && snake.dx === 0) {
+                snake.dx = -grid; snake.dy = 0;
+            } else if (e.key === 'ArrowUp' && snake.dy === 0) {
+                snake.dy = -grid; snake.dx = 0;
+            } else if (e.key === 'ArrowRight' && snake.dx === 0) {
+                snake.dx = grid; snake.dy = 0;
+            } else if (e.key === 'ArrowDown' && snake.dy === 0) {
+                snake.dy = grid; snake.dx = 0;
+            }
+        });
+
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetch('/ping', { method: 'POST' });
+            }
+        }, 10000);
+        fetch('/ping', { method: 'POST' });
+
+        window.addEventListener('beforeunload', () => {
+            navigator.sendBeacon('/offline');
+        });
+
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>
