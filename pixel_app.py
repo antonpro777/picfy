@@ -194,30 +194,35 @@ def chat_messages(other):
 @app.post("/api/chat/send")
 def chat_send():
     if not me(): return err("Нужно войти",401)
-    d=request.get_json(silent=True) or {}; recipient=d.get("recipient_id"); content=str(d.get("content","")).strip()[:4000]
-    if not recipient or not content: return err("Пустое сообщение")
+    d=request.get_json(silent=True) or {}; recipient=d.get("recipient_id")
+    content=str(d.get("content","")).strip()[:4000]; file_url=str(d.get("file_url","")).strip()[:1200]
+    file_type=d.get("file_type","text")
+    if not recipient or (not content and not file_url): return err("Пустое сообщение")
+    if file_type not in ("text","audio","image","video","sticker"): return err("Неверный тип вложения")
     with db() as c,c.cursor() as q:
-        q.execute("INSERT INTO messages(sender_id,recipient_id,content) VALUES(%s,%s,%s) RETURNING id",(me()["id"],int(recipient),content)); mid=q.fetchone()["id"]
+        q.execute("INSERT INTO messages(sender_id,recipient_id,content,file_url,file_type) VALUES(%s,%s,%s,%s,%s) RETURNING id",
+                  (me()["id"],int(recipient),content,file_url,file_type)); mid=q.fetchone()["id"]
     return jsonify(ok=True,id=mid)
 
-@app.post("/api/upload")
-def upload():
+@app.post("/api/upload-ticket")
+def upload_ticket():
     if not me(): return err("Нужно войти",401)
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY: return err("Не настроено хранилище",503)
-    f=request.files.get("file")
-    if not f or not f.filename: return err("Файл не выбран")
-    mime=f.mimetype or mimetypes.guess_type(f.filename)[0] or ""
-    if not mime.startswith(("image/","video/","audio/")): return err("Разрешены изображения, видео и аудио")
+    d=request.get_json(silent=True) or {}; filename=secure_filename(str(d.get("filename","file")))[:100]
+    mime=str(d.get("content_type","application/octet-stream"))[:120]
+    if not mime.startswith(("image/","video/","audio/")): return err("Неверный тип файла")
     from supabase import create_client
-    ext=os.path.splitext(secure_filename(f.filename))[1][:12]; path=f"pixel/{me()['id']}/{uuid.uuid4().hex}{ext}"
+    ext=os.path.splitext(filename)[1][:12]; path=f"pixel/{me()['id']}/{uuid.uuid4().hex}{ext}"
     try:
         client=create_client(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY)
-        client.storage.from_(BUCKET).upload(path,f.read(),{"content-type":mime})
+        signed=client.storage.from_(BUCKET).create_signed_upload_url(path)
+        token=signed.get("token") or signed.get("data",{}).get("token")
+        if not token: raise RuntimeError("Storage did not return signed upload token")
         url=client.storage.from_(BUCKET).get_public_url(path)
         kind="audio" if mime.startswith("audio/") else ("video" if mime.startswith("video/") else "image")
-        return jsonify(url=url,media_type=kind)
+        return jsonify(path=path,token=token,url=url,media_type=kind,mime=mime)
     except Exception:
-        app.logger.exception("upload"); return err("Не удалось загрузить файл. Проверь Storage bucket.",500)
+        app.logger.exception("upload ticket"); return err("Не удалось подготовить загрузку в Storage.",500)
 
 @app.errorhandler(413)
 def too_large(_): return err("Файл слишком большой (лимит 20 МБ).",413)
