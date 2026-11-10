@@ -1,44 +1,19 @@
-# Messenger
+# Pixel
 
-Веб-мессенджер на Flask с регистрацией, личными чатами, вложениями и голосовыми сообщениями.
+Социальная платформа на Flask + PostgreSQL/Supabase.
 
-## Локальный запуск
+## Первая версия
+- Регистрация с подтверждением email шестизначным кодом.
+- Поиск по username, профили, подписки и подписчики.
+- Лента публикаций, фото и видео, лайки и комментарии.
+- Личные чаты с поддержкой emoji.
 
-1. Установите Python 3.11 или новее.
-2. Создайте виртуальное окружение и установите зависимости:
+## Настройка
+1. Установить Python 3.11+ и выполнить pip install -r requirements.txt.
+2. Выполнить SQL из migrations/001_pixel_social.sql в Supabase SQL Editor.
+3. Создать Storage bucket uploads.
+4. Настроить переменные окружения: SECRET_KEY, DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM.
+5. Развернуть на Vercel.
 
-```bash
-python -m venv .venv
-# Windows:
-.venv\\Scripts\\activate
-# macOS/Linux:
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-3. Скопируйте `.env.example` в `.env` и заполните значения.
-4. Запустите приложение:
-
-```bash
-flask --app index run --debug
-```
-
-## Переменные окружения
-
-- `SECRET_KEY` — длинный случайный секрет Flask.
-- `DATABASE_URL` — PostgreSQL connection string (Supabase Session Pooler, SSL).
-- `SUPABASE_URL` — URL проекта Supabase.
-- `SUPABASE_SERVICE_ROLE_KEY` — серверный ключ Supabase; не публикуйте и не добавляйте в Git.
-- `SUPABASE_STORAGE_BUCKET` — имя бакета для файлов; по умолчанию `uploads`.
-
-Создайте в Supabase Storage бакет с именем, указанным в `SUPABASE_STORAGE_BUCKET`.
-
-## Голосовые сообщения
-
-Запись использует браузерные `MediaRecorder` и `getUserMedia`. Для доступа к микрофону сайт должен работать по HTTPS (или на localhost), и пользователь должен разрешить доступ к микрофону.
-
-## Деплой на Vercel
-
-Проект содержит `vercel.json`. Укажите корневую папку проекта как корень репозитория и добавьте перечисленные выше переменные окружения в настройках Vercel. После изменения переменных выполните новый деплой.
-
-**Без настроенного PostgreSQL и Supabase регистрация, постоянное хранение сообщений и загрузка голосовых работать не будут.**
+## Важно
+Сборка пока не production-ready. Текущий upload endpoint ограничен 20 МБ, а serverless-платформа может иметь более низкий лимит тела запроса. Для длинных видео нужна прямая resumable-загрузка в Storage. Голосовая запись и полноценный каталог стикеров — следующий этап. Настрой RLS и политики доступа перед публичным запуском. Service role key хранить только в серверных переменных окружения.
