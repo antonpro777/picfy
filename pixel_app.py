@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from psycopg2.extras import RealDictCursor
 import psycopg2
+from contextlib import contextmanager
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
@@ -19,6 +20,15 @@ BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "uploads")
 def db():
     if not DATABASE_URL: raise RuntimeError("DATABASE_URL is not configured")
     return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor, sslmode="require", connect_timeout=10)
+
+@contextmanager
+def database():
+    conn = db()
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 def send_code(address, code):
     host,user,password = os.environ.get("SMTP_HOST"),os.environ.get("SMTP_USER"),os.environ.get("SMTP_PASSWORD")
@@ -46,7 +56,7 @@ def health():
 @app.get("/")
 def home():
     if not me(): return redirect(url_for("login"))
-    with db() as c,c.cursor() as q:
+    with database() as c,c.cursor() as q:
         q.execute("""SELECT p.id,p.author_id,p.caption,p.media_url,p.media_type,p.created_at,
           u.username,u.name,u.avatar_url,
           (SELECT count(*) FROM pixel_likes l WHERE l.post_id=p.id) likes_count,
