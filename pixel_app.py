@@ -220,7 +220,7 @@ def upload_ticket():
         if not token: raise RuntimeError("Storage did not return signed upload token")
         url=client.storage.from_(BUCKET).get_public_url(path)
         kind="audio" if mime.startswith("audio/") else ("video" if mime.startswith("video/") else "image")
-        return jsonify(path=path,token=token,url=url,media_type=kind,mime=mime)
+        return jsonify(path=path,token=token,url=url,media_type=kind,mime=mime,endpoint=SUPABASE_URL.replace(".supabase.co",".storage.supabase.co")+"/storage/v1/upload/resumable",bucket=BUCKET)
     except Exception:
         app.logger.exception("upload ticket"); return err("Не удалось подготовить загрузку в Storage.",500)
 
