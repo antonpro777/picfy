@@ -48,7 +48,7 @@ def err(message,status=400): return jsonify(error=message),status
 @app.get("/health")
 def health():
     try:
-        with db() as c, c.cursor() as q: q.execute("select 1")
+        with database() as c, c.cursor() as q: q.execute("select 1")
         return jsonify(status="ok",database="ok",app="Pixel")
     except Exception:
         app.logger.exception("health"); return jsonify(status="unavailable"),503
@@ -80,7 +80,7 @@ def register():
         return render_template("pixel_auth.html",mode="register",error="Проверь email. Пароль — минимум 10 символов.")
     code=f"{secrets.randbelow(1000000):06d}"
     try:
-        with db() as c,c.cursor() as q:
+        with database() as c, c.cursor() as q:
             q.execute("SELECT 1 FROM users WHERE username=%s OR lower(email)=lower(%s)",(username,email))
             if q.fetchone(): return render_template("pixel_auth.html",mode="register",error="Этот username или email уже занят.")
             q.execute("INSERT INTO users(username,name,password_hash,email,email_verified) VALUES(%s,%s,%s,%s,false) RETURNING id",
@@ -96,7 +96,7 @@ def verify_email():
     uid=session.get("pending_user_id")
     if not uid: return redirect(url_for("register"))
     if request.method=="POST":
-        with db() as c,c.cursor() as q:
+        with database() as c, c.cursor() as q:
             q.execute("SELECT id,code_hash FROM pixel_email_codes WHERE user_id=%s AND expires_at>now() ORDER BY created_at DESC LIMIT 1",(uid,))
             row=q.fetchone()
             if not row or not check_password_hash(row["code_hash"],request.form.get("code","").strip()):
@@ -111,7 +111,7 @@ def verify_email():
 def login():
     if request.method=="GET": return render_template("pixel_auth.html",mode="login",error=None)
     identity=request.form.get("identity","").strip().lower()
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("SELECT id,username,name,password_hash,email_verified,avatar_url FROM users WHERE lower(username)=%s OR lower(email)=%s",(identity,identity)); u=q.fetchone()
     if not u or not u["password_hash"] or not check_password_hash(u["password_hash"],request.form.get("password","")):
         return render_template("pixel_auth.html",mode="login",error="Неверный логин или пароль.")
@@ -126,14 +126,14 @@ def search():
     if not me(): return err("Нужно войти",401)
     term=request.args.get("q","").strip().lstrip("@")[:40]
     if len(term)<2: return jsonify(users=[])
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("SELECT id,username,name,avatar_url FROM users WHERE username ILIKE %s AND id<>%s AND email_verified=true ORDER BY username LIMIT 15",(term+"%",me()["id"]))
         return jsonify(users=q.fetchall())
 
 @app.get("/profile/<username>")
 def profile(username):
     if not me(): return redirect(url_for("login"))
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("SELECT id,username,name,bio,avatar_url FROM users WHERE username=%s AND email_verified=true",(username.lower(),)); u=q.fetchone()
         if not u: return "Профиль не найден",404
         q.execute("SELECT count(*) n FROM pixel_follows WHERE following_id=%s",(u["id"],)); followers=q.fetchone()["n"]
@@ -149,7 +149,7 @@ def profile(username):
 def follow(target):
     if not me(): return err("Нужно войти",401)
     if target==me()["id"]: return err("Нельзя подписаться на себя")
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("DELETE FROM pixel_follows WHERE follower_id=%s AND following_id=%s RETURNING id",(me()["id"],target)); removed=q.fetchone()
         if not removed: q.execute("INSERT INTO pixel_follows(follower_id,following_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",(me()["id"],target))
     return jsonify(following=not bool(removed))
@@ -161,14 +161,14 @@ def create_post():
     media_url=str(d.get("media_url","")).strip()[:1000]; kind=d.get("media_type","text")
     if kind not in ("text","image","video","short"): return err("Неверный тип публикации")
     if not caption and not media_url: return err("Добавь текст или медиа")
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("INSERT INTO pixel_posts(author_id,caption,media_url,media_type) VALUES(%s,%s,%s,%s) RETURNING id",(me()["id"],caption,media_url,kind)); pid=q.fetchone()["id"]
     return jsonify(ok=True,post_id=pid)
 
 @app.post("/api/posts/<int:pid>/like")
 def like(pid):
     if not me(): return err("Нужно войти",401)
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("DELETE FROM pixel_likes WHERE post_id=%s AND user_id=%s RETURNING id",(pid,me()["id"])); removed=q.fetchone()
         if not removed: q.execute("INSERT INTO pixel_likes(post_id,user_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",(pid,me()["id"]))
         q.execute("SELECT count(*) n FROM pixel_likes WHERE post_id=%s",(pid,)); count=q.fetchone()["n"]
@@ -177,7 +177,7 @@ def like(pid):
 @app.route("/api/posts/<int:pid>/comments",methods=["GET","POST"])
 def comments(pid):
     if not me(): return err("Нужно войти",401)
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         if request.method=="POST":
             body=str((request.get_json(silent=True) or {}).get("body","")).strip()[:1500]
             if not body: return err("Пустой комментарий")
@@ -189,14 +189,14 @@ def comments(pid):
 def chat_users():
     if not me(): return err("Нужно войти",401)
     term=request.args.get("q","").strip().lstrip("@")[:40]
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("SELECT id,username,name,avatar_url FROM users WHERE email_verified=true AND id<>%s AND (%s='' OR username ILIKE %s) ORDER BY username LIMIT 30",(me()["id"],term,term+"%"))
         return jsonify(users=q.fetchall())
 
 @app.get("/api/chat/<int:other>")
 def chat_messages(other):
     if not me(): return err("Нужно войти",401)
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("""SELECT id,sender_id,recipient_id,content,file_url,file_type,created_at FROM messages
           WHERE (sender_id=%s AND recipient_id=%s) OR (sender_id=%s AND recipient_id=%s) ORDER BY id DESC LIMIT 100""",(me()["id"],other,other,me()["id"]))
         return jsonify(messages=list(reversed(q.fetchall())))
@@ -209,7 +209,7 @@ def chat_send():
     file_type=d.get("file_type","text")
     if not recipient or (not content and not file_url): return err("Пустое сообщение")
     if file_type not in ("text","audio","image","video","sticker"): return err("Неверный тип вложения")
-    with db() as c,c.cursor() as q:
+    with database() as c, c.cursor() as q:
         q.execute("INSERT INTO messages(sender_id,recipient_id,content,file_url,file_type) VALUES(%s,%s,%s,%s,%s) RETURNING id",
                   (me()["id"],int(recipient),content,file_url,file_type)); mid=q.fetchone()["id"]
     return jsonify(ok=True,id=mid)
